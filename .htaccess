@@ -1,0 +1,4 @@
+RewriteEngine on
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond $1 !^(index\.php|dwz|assert|robots\.txt|web)
+RewriteRule ^(.*)$ /index.php/$1 [L]
