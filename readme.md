@@ -13,7 +13,7 @@ CI自带的Model功能较弱，且没有将model转化为一个对象来进行�
 
 ## 2、将入口文件移动，解放代码安全策略
 
-将站点入口index.php转移到web/index.php，那么在配置网站根目录是就直接指向web目录。这样使的代码会目录不在web访问范围内，解放web服务器采用配置限制目录访问。也可以省去php头文件上的那句if ( ! defined('BASEPATH')) exit('No direct script access allowed');。
+将站点入口index.php转移到web/index.php，那么在配置网站根目录是就直接指向web目录。这样使得代码目录不在web访问范围内，解放web服务器采用配置限制目录访问，也可以省去php头文件上的那句if ( ! defined('BASEPATH')) exit('No direct script access allowed');。
 
 ## 3、引进自动加载类方法
 
@@ -127,6 +127,14 @@ welcome控制器代码示例：
 			var_dump(user_model::listToArray($user_projects));
 		}
 	}
+
+## 示例代码说明
+
+看了代码之后，你肯定发现了已经没有以往$this->load->model('user_model')这样的代码了。当然可能会对user_model::validate()这个方法以及user_model下的public static $_rules参数有疑问。validate方法是根据$_rules设置的规则进行验证数据是否符合要求的。如果用过CI的form_validation类的话，会发现这个规则是一样的。是的，我只是在这个基础上做了调整而已。当然后续会根据需求再做逐步调整。
+
+## MY_Model提供的方法
+	
+	application/core/MY_Model.php内都有相关的注释，由于还在改进中暂时先看文件内的说明。
 
 
 ## 其他
