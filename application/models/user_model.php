@@ -14,6 +14,11 @@ class user_model extends MY_Model{
 				'field'=>'username',
 				'label'=>'username',
 				'rules'=>'required|is_unique[users.username]|min_length[4]|max_length[20]'
+				),
+			array(
+				'field'=>'salt',
+				'label'=>'salt',
+				'rules'=>'required|exact_length[4]'
 				)
 		);
 	/**
