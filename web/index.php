@@ -10,12 +10,9 @@ function __autoload($className){
 	$CI = & get_instance();
 	if(strpos($className, '_model')){
 		$CI->load->model($className);
+	}else{
+		$CI->load->library($className);
 	}
-	//helper通常是函数，那么基本上就用不到自动加载了
-	/*if(strpos($className, '_helper')){
-		$CI->load->helper($className);
-	}*/
-	$CI->load->library($className);
 }
 
 //加载CI入口文件
