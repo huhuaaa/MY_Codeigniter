@@ -1,4 +1,6 @@
 <?php
+//时间基准设置
+date_default_timezone_set('Asia/Shanghai');
 //或当前文件的目录
 $dirname = dirname(__FILE__);
 
