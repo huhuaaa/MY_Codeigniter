@@ -18,12 +18,12 @@ class MY_Model extends CI_Model{
 	protected $_hidden;
 	//example
 	//protected $_hidden = array('userid');
-	
-	//主键名称
-	protected $_primaryKey = 'id';
 
 	//默认需要隐藏的属性
-	protected $_hidden_default = array('_attributes','_hidden','_hidden_default','_primaryKey');
+	protected $_hidden_default = array('_attributes','_hidden','_hidden_default');
+
+	//主键名称
+	public static $_primaryKey = 'id';
 
 	//验证规则
 	public static $_rules = array();
@@ -39,12 +39,14 @@ class MY_Model extends CI_Model{
 		if(!empty($data)){
 			$this->setData($data);
 		}
+		//执行初始化方法
+		$this->initialize();
 	}
 
 	/**
 	 * 对象初始化后执行
 	 */
-	public function initialize(){
+	protected function initialize(){
 		
 	}
 
@@ -94,7 +96,6 @@ class MY_Model extends CI_Model{
 				}
 			}
 		}
-		$this->initialize();
 		return $this;
 	}
 
@@ -262,7 +263,7 @@ class MY_Model extends CI_Model{
 			$CI->db->where($array);
 		}
 		if(is_int($array)){
-			$CI->db->where($object->_primaryKey, $array);
+			$CI->db->where(static::$_primaryKey, $array);
 		}
 		$data = $CI->db->limit(1,0)->get($table)->row_array();
 		return !empty($data) ? static::createObject($data) : NULL;
@@ -333,17 +334,40 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
+	 * 创建一个新对象，并将数据添加到数据库
+	 * @param  [type] $data [description]
+	 * @return [type]       [description]
+	 */
+	public static function create($data){
+		$CI = & get_instance();
+		$table = static::getSource();
+		$CI->db->insert($table, $data);
+		$insert_id = $CI->db->insert_id();
+		return static::findFirst($insert_id);
+	}
+
+	/**
+	 * 将对象数组转化为JSON字符串
+	 * @param  [type] $array 对象数组
+	 * @param  [type] $keys  对象需要转化的属性名称数组
+	 * @return string        返回JSON序列化的字符串
+	 */
+	public static function listToArray($array, $keys = NULL){
+		$datas = array();
+		foreach ($array as $key => $value) {
+			$datas[] = $value->toArray($keys);
+		}
+		return $datas;
+	}
+
+	/**
 	 * 将对象数组转化为JSON字符串
 	 * @param  [type] $array 对象数组
 	 * @param  [type] $keys  对象需要转化的属性名称数组
 	 * @return string        返回JSON序列化的字符串
 	 */
 	public static function listToJSON($array, $keys = NULL){
-		$datas = array();
-		foreach ($array as $key => $value) {
-			$datas[] = $value->toArray($keys);
-		}
-		return json_encode($datas);
+		return json_encode(static::listToArray($array, $keys));
 	}
 
 	/**
@@ -365,7 +389,7 @@ class MY_Model extends CI_Model{
 	 * 提取错误信息
 	 * @return array 返回错误信息数组
 	 */
-	public static function validateError(){
+	public static function validateMessages(){
 		$CI =& get_instance();
 		if(!isset($CI->validation)){
 			return NULL;

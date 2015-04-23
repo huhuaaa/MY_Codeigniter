@@ -25,7 +25,7 @@
  * @author		EllisLab Dev Team
  * @link		http://codeigniter.com/user_guide/libraries/form_validation.html
  */
-class validation {
+class Validation {
 
 	protected $CI;
 	protected $_field_data			= array();

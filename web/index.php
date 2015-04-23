@@ -10,7 +10,8 @@ function __autoload($className){
 	$CI = & get_instance();
 	if(strpos($className, '_model')){
 		$CI->load->model($className);
-	}else{
+	}
+	else if (strpos($className, 'CI_') === FALSE AND strpos($className, 'MY_') === FALSE) {
 		$CI->load->library($className);
 	}
 }
