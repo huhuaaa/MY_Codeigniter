@@ -15,11 +15,11 @@ class MY_Model extends CI_Model{
 	 */
 
 	//使用toArray方法时，需要隐藏的属性数组
-	protected $_hidden;
+	protected $_hidden = array();
 	//example
 	//protected $_hidden = array('userid');
 
-	//默认需要隐藏的属性
+	//默认需要隐藏的属性，这个不需要重写
 	protected $_hidden_default = array('_attributes','_hidden','_hidden_default');
 
 	//主键名称
@@ -34,7 +34,7 @@ class MY_Model extends CI_Model{
 	 */
 	function __construct(array $data = NULL){
 		if(!empty($this->_hidden)){
-			$this->_hidden_default = array_merge($this->_hidden, $this->_hidden_default);
+			$this->_hidden = array_merge($this->_hidden, $this->_hidden_default);
 		}
 		if(!empty($data)){
 			$this->setData($data);
@@ -100,18 +100,33 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
-	 * 设置需要隐藏的属性
-	 *@param string|array $keys
-	 *@return $this
+	 * 添加默认隐藏属性
+	 * @param string|array $keys
+	 * @return  $this
 	 */
-	public function addHidden($keys = NULL){
+	public function addHiddenDefault($keys){
 		if(!empty($keys)){
 			if(is_array($keys)){
 				$this->_hidden_default = array_merge($this->_hidden_default, $keys);
 			}
-			if(is_string($keys) && array_search($keys, $this->_hidden_default) === FALSE){
+			if(is_string($keys) && !in_array($keys, $this->_hidden_default)){
 				$this->_hidden_default[] = $keys;
 			}
+		}
+		return $this->addHidden($keys);
+	}
+
+	/**
+	 * 设置需要隐藏的属性
+	 * @param string|array $keys
+	 * @return $this
+	 */
+	public function addHidden($keys){
+		if(is_array($keys)){
+			$this->_hidden = array_merge($this->_hidden, $keys);
+		}
+		if(is_string($keys) && !in_array($keys, $this->_hidden)){
+			$this->_hidden[] = $keys;
 		}
 		return $this;
 	}
@@ -137,13 +152,36 @@ class MY_Model extends CI_Model{
 		if(!empty($keys)){
 			foreach ($this as $key => $value) {
 				//排除设定属性
-				if(in_array($key, $keys) && !in_array($key, $this->_hidden_default)){
+				if(in_array($key, $keys) && !in_array($key, $this->_hidden)){
 					$return[$key] = $value;
 				}
 			}
 		}else{
 			foreach ($this as $key => $value) {
+				if(!in_array($key, $this->_hidden)){
+					$return[$key] = $value;
+				}
+			}
+		}
+		return $return;
+	}
+
+	/**
+	 * 将所有属性转化为数组
+	 * @return array 返回转化后的数组
+	 */
+	protected function allArray(array $keys = NULL){
+		$return = array();
+		if(is_null($keys)){
+			foreach ($this as $key => $value) {
 				if(!in_array($key, $this->_hidden_default)){
+					$return[$key] = $value;
+				}
+			}
+		}
+		if(is_array($keys)){
+			foreach ($this as $key => $value) {
+				if(in_array($key, $keys) && !in_array($key, $this->_hidden_default)){
 					$return[$key] = $value;
 				}
 			}
@@ -172,7 +210,7 @@ class MY_Model extends CI_Model{
 			$where = array($field=>$this->{$foreignKey});
 			return $class::findFirst(array('where'=>$where));
 		};
-		$this->addHidden('get_'.$class);
+		$this->addHiddenDefault('get_'.$class);
 	}
 
 	/**
@@ -190,7 +228,7 @@ class MY_Model extends CI_Model{
 			}
 			return $class::find(array('where'=>$where));
 		};
-		$this->addHidden('get_'.$class.'s');
+		$this->addHiddenDefault('get_'.$class.'s');
 	}
 
 	/**
@@ -205,7 +243,19 @@ class MY_Model extends CI_Model{
 			$where = array($foreignKey=>$this->{$field});
 			return $class::findFirst(array('where'=>$where));
 		};
-		$this->addHidden('get_'.$class);
+		$this->addHiddenDefault('get_'.$class);
+	}
+
+	/**
+	 * 将对象的值保存到数据库中，建议传递$keys
+	 * @param array|null $keys 需要保存修改到数据库的属性值
+	 * @return [type] [description]
+	 */
+	public function save(array $keys = NULL){
+		$primaryKey = static::$_primaryKey;
+		$db = static::query();
+		$db->where($primaryKey, $this->{$primaryKey})->update(static::getSource(), $this->allArray($keys));
+		return $db->affected_rows();
 	}
 
 	/**
@@ -214,6 +264,15 @@ class MY_Model extends CI_Model{
 	 */
 	public static function getSource(){
 		return strtolower(get_class(new static));
+	}
+
+	/**
+	 * 获取ci的db对象，并且已经设置对应的表
+	 * @return $CI->db
+	 */
+	public static function query(){
+		$CI =& get_instance();
+		return $CI->db->from(static::getSource());
 	}
 
 	/**
