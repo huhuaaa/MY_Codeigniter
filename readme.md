@@ -132,10 +132,167 @@ welcome控制器代码示例：
 
 看了代码之后，你肯定发现了已经没有以往$this->load->model('user_model')这样的代码了。当然可能会对user_model::validate()这个方法以及user_model下的public static $_rules参数有疑问。validate方法是根据$_rules设置的规则进行验证数据是否符合要求的。如果用过CI的form_validation类的话，会发现这个规则是一样的。是的，我只是在这个基础上做了调整而已。当然后续会根据需求再做逐步调整。
 
-## MY_Model提供的方法
-	
-	application/core/MY_Model.php内都有相关的注释，由于还在改进中暂时先看文件内的说明。
+## MY_Model用法详解
 
+首先创建一个用户的model：
+	
+	//用户model类
+	class user_model extends MY_Model{
+		
+		//指定转array或JSON时，不可见的属性
+		protected $_hidden = array('password');
+	
+		//指定主键为userid，若不指定那么默认为id
+		public static $_primaryKey = 'userid';
+		
+		//初始化执行方法，若无需声明关联关系或者其他操作，则不需要重写
+		protected function initialize(){
+			//声明关联关系，一个用户拥有多个图片，若为1-1关系那么使用hasOne
+			$this->hasMany('userid', 'picture_model', 'userid');
+		}
+
+		//数据校验规则,email字段为邮箱类型，并且必须rules参数使用参考CI的form validation
+		public static $_rules = array(
+				array(
+					'field'=>'email',
+					'label'=>'email',
+					'rules'=>'required|is_unique[users.username]|valid_email'
+					)
+			);
+
+		/**
+		 * 指定数据库表名称
+		 * @return string        数据库表名称
+		 */
+		public static function getSource()
+		{
+			return 'users';
+		}
+	}
+
+创建图片model：
+
+	//图片类
+	class picture extends MY_Model{
+
+		//指定数据检验规则
+		public static $_rules = array(
+				array(
+					'field'   => 'name', 
+					'label'   => 'name', 
+					'rules'   => 'required|min_length[1]|max_length[30]'
+					),
+				array(
+					'field'   => 'userid',
+					'label'   => 'userid',
+					'rules'	  => 'required'
+					)
+			);
+	
+		//初始化
+		protected function initialize(){
+			//图片归用户所有，声明归属关系
+			$this->belongsTo('userid', 'user_model', 'userid');
+		}
+	
+		/**
+		 * 指定数据库表名称
+		 * @return string        数据库表名称
+		 */
+		public static function getSource()
+		{
+			return 'pictures';
+		}
+		
+	}
+
+新增：
+	
+	$array = array('email'=>'qk@detu.com','username'=>'huhuaaa','password'=>'password');
+	
+	//验证数据是否符合要求
+	if(user_model::validate($array)){
+		//符合要求，则新增并创建用户对象
+		$user = user_model::create($array);
+	}else{
+		//不符合，那么提取错误信息，错误信息为一个数组，如：array('email'=>'some thing error','username'=>'error message')
+		$messages = user_model::validateMessages();
+	}
+
+查询单个：
+	
+	//若主键为int型，那么使用主键查询
+	$picture = picture_model::findFirst(1);
+
+	//使用where语句查询
+	$picture = picture_model::findFirst('userid = 1');
+	
+	//使用where数组
+	$picture = picture_model::findFirst(array('userid'=>1));
+
+	//对象转数组
+	$picture->toArray();
+
+	//指定属性转数组
+	$keys = array('id','name');
+	$picture->toArray($keys);
+
+查询多个：
+	
+	$select = 'id,name,userid';
+	$where = array('userid'=>1); //where也可以为字符串语句，如： 'userid = 1'
+	$order = 'id DESC';
+	$limit = 10; //limit可以为单个数字或者数组 array(10, 5)。数字的作用等同于array(10, 0)
+	$pictures = picture_model::find(array('select'=>$select,'where'=>$where,'order'=>$order,'limit'=>$limit));
+
+	//将$pictures转化为数组
+	$array = picture_model::listToArray($picture);
+
+	//如果只需要部分属性转化为数组，那么采用指定属性值
+	$keys = array('id','name');
+	$array = picture_model::listToArray($picture, $keys);
+
+注：select、where、order、limit都不是必须的。当然一般情况下where基本上都有。
+
+修改保存数据(对象属性设置方式)：
+
+	$picture = picture_model::findFirst(1);
+	//设置图片名称
+	$picture->name = '图片名称';
+
+	//指定参数保存，推荐采用此方法
+	$picture->save(array('name'));
+
+	//也可以直接保存所有属性
+	$picture->save();
+
+修改保存数据(数组直接保存方式)：
+
+	$picture = picture_model::findFirst(1);
+	$picture->saveData(array('name'=>'图片名称'));
+
+
+删除对象在数据库中的数据：
+	
+	$picture = picture_model::findFirst(1);
+	//删除
+	$picture->destroy();
+
+根据声明的关联关系，获取数据：
+	
+	$user = user_model::findFirst();
+	//获取用户的图片
+	$user_pictures = $user->get_picture_models();
+	
+	$picture = picture_model::findFirst();
+	//根据图片查询所有者
+	$picture_user = $picture->get_user_model();
+
+注：采用了belongsTo,hasMany,hasOne三个关联关系声明后，才拥有以上这些方法。方法名的规则如下：
+	
+	belongsTo($key, $model, $foreignKey) => get_[$model]
+	hasMany($foreignKey, $model, $key) 	 => get_[$model]s
+	hasOne($foreignKey, $model, $key)    => get_[$model]
 
 ## 其他
 	待续。。。

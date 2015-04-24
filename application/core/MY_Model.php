@@ -1,11 +1,19 @@
 <?php
 class MY_Model extends CI_Model{
 
+	//使用toArray方法时，需要隐藏的属性数组
+	protected $_hidden = array();
+	//example
+	//protected $_hidden = array('userid');
+
+	//默认需要隐藏的属性，这个不需要重写
+	protected $_hidden_default = array('_hidden','_hidden_default');
+
 	//属性配置数组
-	protected $_attributes = NULL;
+	public static $_attributes = NULL;
 	//example
 	/**
-	 protected $_attributes = array(
+	 public static $_attributes = array(
 	 	'userid', //属性声明，表示BaseEntity有userid这个属性
 	 	'realname'=>'name', //表示BaseEntity有realname这个属性值，并且数据是从数据数组中的name键值对应的值
 	 	'username'=>array('username'), //表示BaseEntity有username这个属性值，并且数据是从数据数组中的username键值对应的值
@@ -13,14 +21,6 @@ class MY_Model extends CI_Model{
 	 );
 	 * 可以借助setData方法实现的代码，来理解属性配置数组的用法。
 	 */
-
-	//使用toArray方法时，需要隐藏的属性数组
-	protected $_hidden = array();
-	//example
-	//protected $_hidden = array('userid');
-
-	//默认需要隐藏的属性，这个不需要重写
-	protected $_hidden_default = array('_attributes','_hidden','_hidden_default');
 
 	//主键名称
 	public static $_primaryKey = 'id';
@@ -71,14 +71,14 @@ class MY_Model extends CI_Model{
 	public function setData(array $data){
 		if(is_array($data)){
 			//未声明属性，那么默认取出所有数据库中的字段作为属性
-			if(is_null($this->_attributes)){
+			if(is_null(static::$_attributes)){
 				foreach ($data as $key => $value) {
 					$this->{$key} = $value;
 				}
 			}
 			//定义了属性，那么按照定义的属性来读取
-			if(is_array($this->_attributes)){
-				foreach ($this->_attributes as $key => $value) {
+			if(is_array(static::$_attributes)){
+				foreach (static::$_attributes as $key => $value) {
 					//同名属性
 					if(is_int($key)){
 						$this->{$value} = isset($data[$value]) ? $data[$value] : NULL;
@@ -133,9 +133,9 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 添加属性
-	 *@param string|array $key 属性名称
-	 *@param  mixed $value 属性的值
-	 *@return $this
+	 * @param string|array $key 属性名称
+	 * @param  mixed $value 属性的值
+	 * @return $this
 	 */
 	public function addAttr($key, $value = NULL){
 		$this->{$key} = $value;
@@ -144,8 +144,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 转化为数组类型
-	 *@param array $keys
-	 *@return array
+	 * @param array $keys
+	 * @return array
 	 */
 	public function toArray(array $keys = NULL){
 		$return = array();
@@ -249,12 +249,37 @@ class MY_Model extends CI_Model{
 	/**
 	 * 将对象的值保存到数据库中，建议传递$keys
 	 * @param array|null $keys 需要保存修改到数据库的属性值
-	 * @return [type] [description]
+	 * @return boolean
 	 */
 	public function save(array $keys = NULL){
 		$primaryKey = static::$_primaryKey;
 		$db = static::query();
 		$db->where($primaryKey, $this->{$primaryKey})->update(static::getSource(), $this->allArray($keys));
+		return $db->affected_rows();
+	}
+
+
+	/**
+	 * 设置对象属性并保存到数据库
+	 * @param  array  $data 修改的数据
+	 * @return boolean
+	 */
+	public function saveData(array $data){
+		$this->setData($data);
+		$keys = array();
+		foreach ($data as $key => $value) {
+			$keys[] = $key;
+		}
+		return $this->save($keys);
+	}
+
+	/**
+	 * 摧毁对象(删除数据库中的数据)
+	 * @return boolean
+	 */
+	public function destroy(){
+		$db = static::query();
+		$db->delete(static::getSource(), array(static::$_primaryKey=>$this->{$_primaryKey}));
 		return $db->affected_rows();
 	}
 
@@ -277,8 +302,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 创建一个当前类对象
-	 *@param array $data
-	 *@return object
+	 * @param array $data
+	 * @return object
 	 */
 	public static function createObject(array $data){
 		return new static($data);
@@ -286,8 +311,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 创建一个当前类对象集合
-	 *@param array $datas
-	 *@return array 
+	 * @param array $datas
+	 * @return array 
 	 */
 	public static function createObjects(array $datas){
 		$objects = array();
@@ -333,7 +358,7 @@ class MY_Model extends CI_Model{
 	 * @param  mixed  $array 查询条件
 	 * @return array(object) 返回包含多个对象的数组
 	 */
-	public static function find($array = ''){
+	public static function find($array = NULL){
 		$CI = & get_instance();
 		$table = static::getSource();
 		if(is_array($array)){
