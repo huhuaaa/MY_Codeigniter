@@ -33,9 +33,7 @@ class MY_Model extends CI_Model{
 	 * @param array
 	 */
 	function __construct(array $data = NULL){
-		if(!empty($this->_hidden)){
-			$this->_hidden = array_merge($this->_hidden, $this->_hidden_default);
-		}
+		$this->_hidden = array_merge($this->_hidden, $this->_hidden_default);
 		if(!empty($data)){
 			$this->setData($data);
 		}
@@ -167,7 +165,7 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
-	 * 将所有属性转化为数组
+	 * 将所有属性转化为数组，数组内的所有值只能是string或者int，用于数据库更新
 	 * @return array 返回转化后的数组
 	 */
 	protected function allArray(array $keys = NULL){
@@ -175,18 +173,36 @@ class MY_Model extends CI_Model{
 		if(is_null($keys)){
 			foreach ($this as $key => $value) {
 				if(!in_array($key, $this->_hidden_default)){
-					$return[$key] = $value;
+					//值为对象时需要转化为字符串
+					if(is_object($value) || is_array($value)){
+						$return[$key] = json_encode($value);
+					}else{
+						$return[$key] = $value;
+					}
 				}
 			}
 		}
 		if(is_array($keys)){
 			foreach ($this as $key => $value) {
 				if(in_array($key, $keys) && !in_array($key, $this->_hidden_default)){
-					$return[$key] = $value;
+					//值为对象时需要转化为字符串
+					if(is_object($value) || is_array($value)){
+						$return[$key] = json_encode($value);
+					}else{
+						$return[$key] = $value;
+					}
 				}
 			}
 		}
 		return $return;
+	}
+
+	/**
+	 * 验证当前模型对象是否符合校验规则
+	 * @return boolean
+	 */
+	public function validateSelf(){
+		return static::validate($this->allArray());
 	}
 
 	/**
@@ -224,9 +240,11 @@ class MY_Model extends CI_Model{
 		$this->{'get_'.$class.'s'} = function($array = NULL) use($foreignKey, $class, $field){
 			$where = array($field=>$this->{$foreignKey});
 			if(!empty($array)){
-				$where = array_merge($array, $where);
+				$array['where'] = isset($array['where']) ? array_merge($array['where'], $where) : $where;
+			}else{
+				$array = array('where'=>$where);
 			}
-			return $class::find(array('where'=>$where));
+			return $class::find($array);
 		};
 		$this->addHiddenDefault('get_'.$class.'s');
 	}
@@ -279,7 +297,7 @@ class MY_Model extends CI_Model{
 	 */
 	public function destroy(){
 		$db = static::query();
-		$db->delete(static::getSource(), array(static::$_primaryKey=>$this->{$_primaryKey}));
+		$db->delete(static::getSource(), array(static::$_primaryKey=>$this->{static::$_primaryKey}));
 		return $db->affected_rows();
 	}
 
@@ -334,10 +352,14 @@ class MY_Model extends CI_Model{
 		if(is_array($array)){
 			$select = isset($array['select']) ? $array['select'] : '*';
 			$where = isset($array['where']) ? $array['where'] : NULL;
+			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
 			$order = isset($array['order']) ? $array['order'] : NULL;
 			$CI->db->select($select);
 			if(!empty($where)){
 				$CI->db->where($where);
+			}
+			if(!empty($or_where)){
+				$CI->db->or_where($or_where);
 			}
 			if(!empty($order)){
 				$CI->db->order_by($order);
@@ -364,17 +386,20 @@ class MY_Model extends CI_Model{
 		if(is_array($array)){
 			$select = isset($array['select']) ? $array['select'] : '*';
 			$where = isset($array['where']) ? $array['where'] : NULL;
+			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
 			$order = isset($array['order']) ? $array['order'] : NULL;
 			$limit = isset($array['limit']) ? $array['limit'] : NULL;
 			$CI->db->select($select);
 			if(!empty($where)){
 				$CI->db->where($where);
 			}
-			if(is_array($limit) && isset($limit[0])){
-				$CI->db->limit($limit[0],isset($limit[1]) ? $limit[1] : 0);
+			if(!empty($or_where)){
+				$CI->db->or_where($or_where);
 			}
 			if(is_int($limit)){
-				$CI->db->limit($limit);
+				$CI->db->limit($limit > 0 ? $limit : 0);
+			} else if (is_array($limit) && isset($limit[0])){
+				$CI->db->limit($limit[0] > 0 ? intval($limit[0]) : 0,isset($limit[1]) && $limit[1] > 0 ? intval($limit[1]) : 0);
 			}
 			if(!empty($order)){
 				$CI->db->order_by($order);
@@ -385,6 +410,23 @@ class MY_Model extends CI_Model{
 		}
 		$data = $CI->db->get($table)->result_array();
 		return static::createObjects($data);
+	}
+
+	/**
+	 * 删除
+	 * @param  [type] $id [description]
+	 * @return int        影响行数
+	 */
+	public static function remove($where){
+		$db = static::query();
+		if(is_int($where)){
+			$db->delete(static::getSource(), array($this->_primaryKey=>$id));
+			return $db->affected_rows();
+		} else if(is_string($where) or is_array($where)){
+			$db->delete(static::getSource(), $where);
+			return $db->affected_rows();
+		}
+		return 0;
 	}
 
 	/**
@@ -464,7 +506,7 @@ class MY_Model extends CI_Model{
 		if(!isset($CI->validation)){
 			$CI->load->library('validation');
 		}
-		$CI->validation->setData($data);
+		$CI->validation->setData($data, static::$_primaryKey);
 		$CI->validation->set_rules(static::$_rules);
 		return $CI->validation->run();
 	}
