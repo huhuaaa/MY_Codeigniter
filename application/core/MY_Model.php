@@ -315,6 +315,9 @@ class MY_Model extends CI_Model{
 	 */
 	public static function query(){
 		$CI =& get_instance();
+		if(!isset($CI->db)){
+			$CI->load->database();
+		}
 		return $CI->db->from(static::getSource());
 	}
 
@@ -346,32 +349,31 @@ class MY_Model extends CI_Model{
 	 * @return object        返回数据模型对象
 	 */
 	public static function findFirst($array = NULL){
-		$CI = & get_instance();
-		$table = static::getSource();
+		$db = static::query();
 		$data = NULL;
 		if(is_array($array)){
 			$select = isset($array['select']) ? $array['select'] : '*';
 			$where = isset($array['where']) ? $array['where'] : NULL;
 			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
 			$order = isset($array['order']) ? $array['order'] : NULL;
-			$CI->db->select($select);
+			$db->select($select);
 			if(!empty($where)){
-				$CI->db->where($where);
+				$db->where($where);
 			}
 			if(!empty($or_where)){
-				$CI->db->or_where($or_where);
+				$db->or_where($or_where);
 			}
 			if(!empty($order)){
-				$CI->db->order_by($order);
+				$db->order_by($order);
 			}
 		}
 		if(is_string($array) && !empty($array)){
-			$CI->db->where($array);
+			$db->where($array);
 		}
 		if(is_int($array)){
-			$CI->db->where(static::$_primaryKey, $array);
+			$db->where(static::$_primaryKey, $array);
 		}
-		$data = $CI->db->limit(1,0)->get($table)->row_array();
+		$data = $db->limit(1,0)->get()->row_array();
 		return !empty($data) ? static::createObject($data) : NULL;
 	}
 
@@ -381,34 +383,33 @@ class MY_Model extends CI_Model{
 	 * @return array(object) 返回包含多个对象的数组
 	 */
 	public static function find($array = NULL){
-		$CI = & get_instance();
-		$table = static::getSource();
+		$db = static::query();
 		if(is_array($array)){
 			$select = isset($array['select']) ? $array['select'] : '*';
 			$where = isset($array['where']) ? $array['where'] : NULL;
 			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
 			$order = isset($array['order']) ? $array['order'] : NULL;
 			$limit = isset($array['limit']) ? $array['limit'] : NULL;
-			$CI->db->select($select);
+			$db->select($select);
 			if(!empty($where)){
-				$CI->db->where($where);
+				$db->where($where);
 			}
 			if(!empty($or_where)){
-				$CI->db->or_where($or_where);
+				$db->or_where($or_where);
 			}
 			if(is_int($limit)){
-				$CI->db->limit($limit > 0 ? $limit : 0);
+				$db->limit($limit > 0 ? $limit : 0);
 			} else if (is_array($limit) && isset($limit[0])){
-				$CI->db->limit($limit[0] > 0 ? intval($limit[0]) : 0,isset($limit[1]) && $limit[1] > 0 ? intval($limit[1]) : 0);
+				$db->limit($limit[0] > 0 ? intval($limit[0]) : 0,isset($limit[1]) && $limit[1] > 0 ? intval($limit[1]) : 0);
 			}
 			if(!empty($order)){
-				$CI->db->order_by($order);
+				$db->order_by($order);
 			}
 		}
 		if(is_string($array) && !empty($array)){
-			$CI->db->where($array);
+			$db->where($array);
 		}
-		$data = $CI->db->get($table)->result_array();
+		$data = $db->get()->result_array();
 		return static::createObjects($data);
 	}
 
@@ -435,12 +436,11 @@ class MY_Model extends CI_Model{
 	 * @return int           数量
 	 */
 	public static function count($where = NULL){
-		$CI = & get_instance();
-		$table = static::getSource();
+		$db = static::query();
 		if(!empty($where)){
 			$CI->db->where($where);
 		}
-		return $CI->db->from($table)->count_all_results();
+		return $db->count_all_results();
 	}
 
 	/**
@@ -450,12 +450,11 @@ class MY_Model extends CI_Model{
 	 * @return int           返回结果
 	 */
 	public static function sum($field, $where = NULL){
-		$CI = & get_instance();
-		$table = static::getSource();
+		$db = static::query();
 		if(!empty($where)){
 			$CI->db->where($where);
 		}
-		$array = $CI->db->select_sum($field)->from($table)->get()->row_array();
+		$array = $db->select_sum($field)->get()->row_array();
 		return $array[$field];
 	}
 
@@ -465,10 +464,9 @@ class MY_Model extends CI_Model{
 	 * @return [type]       [description]
 	 */
 	public static function create($data){
-		$CI = & get_instance();
-		$table = static::getSource();
-		$CI->db->insert($table, $data);
-		$insert_id = $CI->db->insert_id();
+		$db = static::query();
+		$db->insert(static::getSource(), $data);
+		$insert_id = $db->insert_id();
 		return static::findFirst($insert_id);
 	}
 
