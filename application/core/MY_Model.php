@@ -438,7 +438,7 @@ class MY_Model extends CI_Model{
 	public static function count($where = NULL){
 		$db = static::query();
 		if(!empty($where)){
-			$CI->db->where($where);
+			$db->where($where);
 		}
 		return $db->count_all_results();
 	}
@@ -452,7 +452,7 @@ class MY_Model extends CI_Model{
 	public static function sum($field, $where = NULL){
 		$db = static::query();
 		if(!empty($where)){
-			$CI->db->where($where);
+			$db->where($where);
 		}
 		$array = $db->select_sum($field)->get()->row_array();
 		return $array[$field];
