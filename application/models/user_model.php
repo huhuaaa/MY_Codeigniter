@@ -5,7 +5,7 @@
 class user_model extends MY_Model{
 
 	//指定对象拥有的属性值，若不指定那么默认为数据库内所有字段
-	protected $_attributes = array('id','username','password', 'salt');
+	protected static $_attributes = array('id','username','password', 'salt');
 	//指定转array或JSON时，不可见的属性
 	protected $_hidden = array('password', 'salt');
 	//数据校验规则
