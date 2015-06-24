@@ -18,6 +18,17 @@ function __autoload($className){
 	}
 }
 
+//内网根据主机名判断环境
+$host = gethostname();
+$developers = array('qk-PC');
+if(in_array($host, $developers)){
+	define('ENVIRONMENT', 'development');
+}else{
+	define('ENVIRONMENT', 'testing');
+}
+//外网直接使用production
+//define('ENVIRONMENT', 'production');
+
 //加载CI入口文件
 include 'index.php';
 ?>
