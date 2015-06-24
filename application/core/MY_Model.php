@@ -239,7 +239,7 @@ class MY_Model extends CI_Model{
 	public function hasMany($foreignKey, $class, $field){
 		$this->{'get_'.$class.'s'} = function($array = NULL) use($foreignKey, $class, $field){
 			$where = array($field=>$this->{$foreignKey});
-			if(!empty($array)){
+			if(!empty($array) && is_array($array)){
 				$array['where'] = isset($array['where']) ? array_merge($array['where'], $where) : $where;
 			}else{
 				$array = array('where'=>$where);

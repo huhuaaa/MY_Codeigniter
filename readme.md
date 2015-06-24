@@ -294,5 +294,7 @@ welcome控制器代码示例：
 	hasMany($foreignKey, $model, $key) 	 => get_[$model]s
 	hasOne($foreignKey, $model, $key)    => get_[$model]
 
+>get_[$model]s($array = array())方法可以接收一个数组参数，使用方法同model的find方法传入一个数组。如：$user->get_picture_models(array('select'=>'id', 'where'=>array('isdelete'=>1)));
+
 ## 其他
 	待续。。。
