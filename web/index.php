@@ -19,9 +19,9 @@ function __autoload($className){
 }
 
 //内网根据主机名判断环境
-$host = gethostname();
+$hostname = gethostname();
 $developers = array('qk-PC');
-if(in_array($host, $developers)){
+if(in_array($hostname, $developers)){
 	define('ENVIRONMENT', 'development');
 }else{
 	define('ENVIRONMENT', 'testing');
