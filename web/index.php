@@ -8,13 +8,29 @@ $dirname = dirname(__FILE__);
 chdir($dirname.'/../');//自动加载方法实现
 
 //自动加载类的方法
-function __autoload($className){
-	$CI = & get_instance();
-	if(strpos($className, '_model')){
-		$CI->load->model($className);
+if(function_exists('spl_autoload_register')){
+
+	function autoload($className){
+		$CI = & get_instance();
+		if(strpos($className, '_model')){
+			$CI->load->model($className);
+		}
+		else if (strpos($className, 'CI_') === FALSE AND strpos($className, 'MY_') === FALSE) {
+			$CI->load->library($className);
+		}
 	}
-	else if (strpos($className, 'CI_') === FALSE AND strpos($className, 'MY_') === FALSE) {
-		$CI->load->library($className);
+
+	spl_autoload_register('autoload', TRUE, TRUE);
+}else{
+	
+	function __autoload($className){
+		$CI = & get_instance();
+		if(strpos($className, '_model')){
+			$CI->load->model($className);
+		}
+		else if (strpos($className, 'CI_') === FALSE AND strpos($className, 'MY_') === FALSE) {
+			$CI->load->library($className);
+		}
 	}
 }
 
