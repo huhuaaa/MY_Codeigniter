@@ -213,7 +213,7 @@ welcome控制器代码示例：
 			$db = static::query();
 			if(!empty($data) && isset($data['userid'])){
 				$db->insert(static::getSource(), $data);
-				return static::findFirst(array('userid'=>$data['userid']));
+				return static::findFirst(array('where'=>array('userid'=>$data['userid'])));
 			}else{
 				return NULL;
 			}
@@ -243,7 +243,7 @@ welcome控制器代码示例：
 	$picture = picture_model::findFirst('userid = 1');
 	
 	//使用where数组
-	$picture = picture_model::findFirst(array('userid'=>1));
+	$picture = picture_model::findFirst(array('where'=>array('userid'=>1)));
 
 	//对象转数组
 	$picture->toArray();
