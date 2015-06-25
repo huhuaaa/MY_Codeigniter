@@ -204,6 +204,21 @@ welcome控制器代码示例：
 			return 'pictures';
 		}
 		
+		/**
+		 * 创建一个新对象，并将数据添加到数据库（用户表的主键不为int类型，名称也不为id，需要重写）
+		 * @param  [type] $data 
+		 * @return [type]
+		 */
+		public static function create($data){
+			$db = static::query();
+			if(!empty($data) && isset($data['userid'])){
+				$db->insert(static::getSource(), $data);
+				return static::findFirst(array('userid'=>$data['userid']));
+			}else{
+				return NULL;
+			}
+		}
+		
 	}
 
 新增：
