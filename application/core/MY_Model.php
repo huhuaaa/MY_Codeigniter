@@ -504,7 +504,7 @@ class MY_Model extends CI_Model{
 		if(!isset($CI->validation)){
 			$CI->load->library('validation');
 		}
-		$CI->validation->setData($data, static::$_primaryKey);
+		$CI->validation->setData($data);
 		$CI->validation->set_rules(static::$_rules);
 		return $CI->validation->run();
 	}
