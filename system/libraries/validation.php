@@ -37,6 +37,8 @@ class Validation {
 	protected $error_string			= '';
 	protected $_safe_form_data		= FALSE;
 	protected $_validation_array 	= array();
+	protected $_primary_key = '';
+	protected $_primary_value = '';
 
 	/**
 	 * Constructor
@@ -951,7 +953,18 @@ class Validation {
 	public function is_unique($str, $field)
 	{
 		list($table, $field) = explode('.', $field);
-		$query = $this->CI->db->limit(1)->get_where($table, array($field => $str));
+
+		$where = array($field => $str);
+
+		if(!empty($this->_primary_key)){
+			$where[$this->_primary_key.' != '] = $this->_primary_value;
+		}
+		
+		if(!isset($this->CI->db)){
+			$this->CI->load->database();
+		}
+
+		$query = $this->CI->db->limit(1)->get_where($table, $where);
 		
 		return $query->num_rows() === 0;
     }
@@ -1379,8 +1392,12 @@ class Validation {
 	 * 设置需要验证的数组
 	 * @param array $_validation_array 需要验证的数据数组
 	 */
-	public function setData(array $_validation_array){
+	public function setData(array $_validation_array, $_primary_key = ''){
 		$this->_validation_array = $_validation_array;
+		$this->_primary_key = $_primary_key;
+		if(isset($_validation_array[$this->_primary_key])){
+			$this->_primary_value = $_validation_array[$this->_primary_key];
+		}
 	}
 
 	/**
