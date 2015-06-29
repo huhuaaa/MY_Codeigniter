@@ -267,12 +267,13 @@ class MY_Model extends CI_Model{
 	/**
 	 * 将对象的值保存到数据库中，建议传递$keys
 	 * @param array|null $keys 需要保存修改到数据库的属性值
+	 * @param bool escape 是否禁止转义，默认转义（即生成的sql语句中set值默认加上引号）
 	 * @return boolean
 	 */
-	public function save(array $keys = NULL){
+	public function save(array $keys = NULL, $escape = TRUE){
 		$primaryKey = static::$_primaryKey;
 		$db = static::query();
-		$db->where($primaryKey, $this->{$primaryKey})->update(static::getSource(), $this->allArray($keys));
+		$db->where($primaryKey, $this->{$primaryKey})->set($this->allArray($keys), '', $escape)->update();
 		return $db->affected_rows();
 	}
 
@@ -280,15 +281,16 @@ class MY_Model extends CI_Model{
 	/**
 	 * 设置对象属性并保存到数据库
 	 * @param  array  $data 修改的数据
+	 * @param bool escape 是否禁止转义，默认转义（即生成的sql语句中set值默认加上引号）
 	 * @return boolean
 	 */
-	public function saveData(array $data){
+	public function saveData(array $data, $escape = TRUE){
 		$this->setData($data);
 		$keys = array();
 		foreach ($data as $key => $value) {
 			$keys[] = $key;
 		}
-		return $this->save($keys);
+		return $this->save($keys, $escape);
 	}
 
 	/**
