@@ -446,7 +446,6 @@ class MY_Model extends CI_Model{
 	 */
 	public static function count($array = NULL){
 		$db = static::query();
-		$db->select('count(1) as cou');
 		if(is_array($array)){
 			$where = isset($array['where']) ? $array['where'] : NULL;
 			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
@@ -464,8 +463,7 @@ class MY_Model extends CI_Model{
 		if(is_string($array) && !empty($array)){
 			$db->where($array);
 		}
-		$data = $db->get()->row_array();
-		return $data['cou'];
+		return $db->count_all_results();
 	}
 
 	/**
