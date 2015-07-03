@@ -267,12 +267,13 @@ class MY_Model extends CI_Model{
 	/**
 	 * 将对象的值保存到数据库中，建议传递$keys
 	 * @param array|null $keys 需要保存修改到数据库的属性值
+	 * @param bool escape 是否禁止转义，默认转义（即生成的sql语句中set值默认加上引号）
 	 * @return boolean
 	 */
-	public function save(array $keys = NULL){
+	public function save(array $keys = NULL, $escape = TRUE){
 		$primaryKey = static::$_primaryKey;
 		$db = static::query();
-		$db->where($primaryKey, $this->{$primaryKey})->update(static::getSource(), $this->allArray($keys));
+		$db->where($primaryKey, $this->{$primaryKey})->set($this->allArray($keys), '', $escape)->update();
 		return $db->affected_rows();
 	}
 
@@ -280,15 +281,23 @@ class MY_Model extends CI_Model{
 	/**
 	 * 设置对象属性并保存到数据库
 	 * @param  array  $data 修改的数据
+	 * @param bool escape 是否禁止转义，默认转义（即生成的sql语句中set值默认加上引号）
 	 * @return boolean
 	 */
-	public function saveData(array $data){
+	public function saveData(array $data, $escape = TRUE){
 		$this->setData($data);
 		$keys = array();
 		foreach ($data as $key => $value) {
 			$keys[] = $key;
 		}
-		return $this->save($keys);
+		$affected_rows = $this->save($keys, $escape);
+		if(!$escape){
+			$db = static::query();
+			$primaryKey = static::$_primaryKey;
+			$data = $db->where($primaryKey, $this->{$primaryKey})->limit(1)->get()->row_array();
+			$this->setData($data);
+		}
+		return $affected_rows;
 	}
 
 	/**
@@ -435,12 +444,28 @@ class MY_Model extends CI_Model{
 	 * @param  mixed  $where 筛选条件
 	 * @return int           数量
 	 */
-	public static function count($where = NULL){
+	public static function count($array = NULL){
 		$db = static::query();
-		if(!empty($where)){
-			$db->where($where);
+		$db->select('count(1) as cou');
+		if(is_array($array)){
+			$where = isset($array['where']) ? $array['where'] : NULL;
+			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
+			
+			if(!empty($where)){
+				$db->where($where);
+			}
+			if(!empty($or_where)){
+				$db->or_where($or_where);
+			}
+			if(empty($where) && empty($or_where)){
+				$db->where($array);
+			}
 		}
-		return $db->count_all_results();
+		if(is_string($array) && !empty($array)){
+			$db->where($array);
+		}
+		$data = $db->get()->row_array();
+		return $data['cou'];
 	}
 
 	/**
@@ -449,10 +474,24 @@ class MY_Model extends CI_Model{
 	 * @param  [type] $where 求和的条件
 	 * @return int           返回结果
 	 */
-	public static function sum($field, $where = NULL){
+	public static function sum($field, $array = NULL){
 		$db = static::query();
-		if(!empty($where)){
-			$db->where($where);
+		if(is_array($array)){
+			$where = isset($array['where']) ? $array['where'] : NULL;
+			$or_where = isset($array['or_where']) ? $array['or_where'] : NULL;
+			
+			if(!empty($where)){
+				$db->where($where);
+			}
+			if(!empty($or_where)){
+				$db->or_where($or_where);
+			}
+			if(empty($where) && empty($or_where)){
+				$db->where($array);
+			}
+		}
+		if(is_string($array) && !empty($array)){
+			$db->where($array);
 		}
 		$array = $db->select_sum($field)->get()->row_array();
 		return $array[$field];
@@ -504,7 +543,7 @@ class MY_Model extends CI_Model{
 		if(!isset($CI->validation)){
 			$CI->load->library('validation');
 		}
-		$CI->validation->setData($data);
+		$CI->validation->setData($data, static::$_primaryKey);
 		$CI->validation->set_rules(static::$_rules);
 		return $CI->validation->run();
 	}
@@ -520,6 +559,16 @@ class MY_Model extends CI_Model{
 		}else{
 			return $CI->validation->messages();
 		}
+	}
+
+	/**
+	 * 获取最后一次执行的sql语句，主要用于调试
+	 * @return string 
+	 */
+	public static function lastQuery()
+	{
+		$db = static::query();
+		return $db->last_query();
 	}
 
 }
