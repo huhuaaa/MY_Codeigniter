@@ -375,6 +375,9 @@ class MY_Model extends CI_Model{
 			if(!empty($order)){
 				$db->order_by($order);
 			}
+			if(empty($where) && empty($or_where)){
+				$db->where($array);
+			}
 		}
 		if(is_string($array) && !empty($array)){
 			$db->where($array);
@@ -406,13 +409,19 @@ class MY_Model extends CI_Model{
 			if(!empty($or_where)){
 				$db->or_where($or_where);
 			}
+
+			if(empty($where) && empty($or_where)){
+				$db->where($array);
+			}
+
+			if(!empty($order)){
+				$db->order_by($order);
+			}
+
 			if(is_int($limit)){
 				$db->limit($limit > 0 ? $limit : 0);
 			} else if (is_array($limit) && isset($limit[0])){
 				$db->limit($limit[0] > 0 ? intval($limit[0]) : 0,isset($limit[1]) && $limit[1] > 0 ? intval($limit[1]) : 0);
-			}
-			if(!empty($order)){
-				$db->order_by($order);
 			}
 		}
 		if(is_string($array) && !empty($array)){
