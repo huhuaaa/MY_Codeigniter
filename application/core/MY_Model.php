@@ -574,8 +574,11 @@ class MY_Model extends CI_Model{
 	 */
 	public static function lastQuery()
 	{
-		$db = static::query();
-		return $db->last_query();
+		$CI =& get_instance();
+		if(!isset($CI->db)){
+			$CI->load->database();
+		}
+		return $CI->db->last_query();
 	}
 
 }
