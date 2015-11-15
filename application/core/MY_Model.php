@@ -512,8 +512,13 @@ class MY_Model extends CI_Model{
 	public static function create($data){
 		$db = static::query();
 		$db->insert(static::getSource(), $data);
-		$insert_id = $db->insert_id();
-		return static::findFirst($insert_id);
+		$insert_id = '';
+		if(isset($data[static::$_primaryKey])){
+			$insert_id = $data[static::$_primaryKey];
+		}else{
+			$insert_id = $db->insert_id();
+		}
+		return static::findFirst(array(static::$_primaryKey=>$insert_id));
 	}
 
 	/**
