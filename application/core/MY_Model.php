@@ -55,7 +55,7 @@ class MY_Model extends CI_Model{
 	 * @return void
 	 */
 	public function __call($method, $args){
-		if(isset($this->$method)){
+		if(isset($this->$method) && is_callable($this->$method)){
 			return call_user_func_array($this->$method, $args);
 		}else{
 			throw new Exception('Call to undefined method '.get_class($this).'::'.$method.'()', 0);
@@ -320,14 +320,21 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 获取ci的db对象，并且已经设置对应的表
+	 * @param boolean $nofrom 不需要指定from的表
 	 * @return $CI->db
 	 */
-	public static function query(){
+	public static function query($nofrom = FALSE){
 		$CI =& get_instance();
 		if(!isset($CI->db)){
 			$CI->load->database();
+		}else{
+			$CI->db->reconnect();
 		}
-		return $CI->db->from(static::getSource());
+		if($nofrom){
+			return $CI->db;
+		}else{
+			return $CI->db->from(static::getSource());
+		}
 	}
 
 	/**
@@ -375,7 +382,7 @@ class MY_Model extends CI_Model{
 			if(!empty($order)){
 				$db->order_by($order);
 			}
-			if(empty($where) && empty($or_where)){
+			if(empty($where) && empty($or_where) && empty($order)){
 				$db->where($array);
 			}
 		}
@@ -410,7 +417,7 @@ class MY_Model extends CI_Model{
 				$db->or_where($or_where);
 			}
 
-			if(empty($where) && empty($or_where)){
+			if(empty($where) && empty($or_where) && empty($order) && empty($limit)){
 				$db->where($array);
 			}
 
@@ -512,14 +519,15 @@ class MY_Model extends CI_Model{
 	public static function create($data){
 		$db = static::query();
 		$db->insert(static::getSource(), $data);
+		$insert_id = $db->insert_id();
+		return static::findFirst($insert_id);
 		$insert_id = '';
 		if(isset($data[static::$_primaryKey])){
 			$insert_id = $data[static::$_primaryKey];
 		}else{
 			$insert_id = $db->insert_id();
 		}
-		return static::findFirst(array(static::$_primaryKey=>$insert_id));
-	}
+		return static::findFirst(array(static::$_primaryKey=>$insert_id));	}
 
 	/**
 	 * 将对象数组转化为JSON字符串
@@ -582,6 +590,8 @@ class MY_Model extends CI_Model{
 		$CI =& get_instance();
 		if(!isset($CI->db)){
 			$CI->load->database();
+		}else{
+			$CI->db->reconnect();
 		}
 		return $CI->db->last_query();
 	}
