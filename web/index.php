@@ -46,5 +46,5 @@ if(in_array($hostname, $developers)){
 //define('ENVIRONMENT', 'production');
 
 //加载CI入口文件
-include 'index.php';
+require 'index.php';
 ?>

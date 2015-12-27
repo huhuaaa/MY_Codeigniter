@@ -7,7 +7,7 @@ class MY_Model extends CI_Model{
 	//protected $_hidden = array('userid');
 
 	//默认需要隐藏的属性，这个不需要重写
-	protected $_hidden_default = array('_hidden','_hidden_default');
+	protected $_hidden_default = array('_hidden', '_hidden_default');
 
 	//属性配置数组
 	public static $_attributes = NULL;
@@ -52,9 +52,60 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
+	 * 添加默认隐藏属性
+	 * @param   string|array $keys 添加转换数组时默认隐藏的属性
+	 * @return  $this
+	 */
+	protected function addHiddenDefault($keys){
+		if(!empty($keys)){
+			if(is_array($keys)){
+				$this->_hidden_default = array_merge($this->_hidden_default, $keys);
+			}
+			if(is_string($keys) && !in_array($keys, $this->_hidden_default)){
+				$this->_hidden_default[] = $keys;
+			}
+		}
+		return $this->addHidden($keys);
+	}
+
+	/**
+	 * 将所有属性转化为数组，数组内的所有值只能是string或者int，用于数据库更新
+	 * @param  array $keys 需要转换后显示的属性键值数组
+	 * @return array 返回转化后的数组
+	 */
+	protected function allArray(array $keys = NULL){
+		$return = array();
+		if(is_null($keys)){
+			foreach ($this as $key => $value) {
+				if(!in_array($key, $this->_hidden_default)){
+					//值为对象时需要转化为字符串
+					if(is_object($value) || is_array($value)){
+						$return[$key] = json_encode($value);
+					}else{
+						$return[$key] = $value;
+					}
+				}
+			}
+		}
+		if(is_array($keys)){
+			foreach ($this as $key => $value) {
+				if(in_array($key, $keys) && !in_array($key, $this->_hidden_default)){
+					//值为对象时需要转化为字符串
+					if(is_object($value) || is_array($value)){
+						$return[$key] = json_encode($value);
+					}else{
+						$return[$key] = $value;
+					}
+				}
+			}
+		}
+		return $return;
+	}
+
+	/**
 	 * 对象方法调用重写，允许调用注册的对象方法
 	 * @param  string $method 方法名
-	 * @param  array $args   参数数组
+	 * @param  array  $args   参数数组
 	 * @return void
 	 */
 	public function __call($method, $args){
@@ -67,7 +118,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 设置数据
-	 * @param  array $data
+	 * @param  array $data 设置对象多个属性的值，数组的键值对应对象的属性名称
+	 * @return $this
 	 */
 	public function setData(array $data){
 		if(is_array($data)){
@@ -101,25 +153,8 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
-	 * 添加默认隐藏属性
-	 * @param string|array $keys
-	 * @return  $this
-	 */
-	public function addHiddenDefault($keys){
-		if(!empty($keys)){
-			if(is_array($keys)){
-				$this->_hidden_default = array_merge($this->_hidden_default, $keys);
-			}
-			if(is_string($keys) && !in_array($keys, $this->_hidden_default)){
-				$this->_hidden_default[] = $keys;
-			}
-		}
-		return $this->addHidden($keys);
-	}
-
-	/**
 	 * 设置需要隐藏的属性
-	 * @param string|array $keys
+	 * @param  string|array $keys 添加转换数组时需要隐藏的属性
 	 * @return $this
 	 */
 	public function addHidden($keys){
@@ -134,8 +169,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 添加属性
-	 * @param string|array $key 属性名称
-	 * @param  mixed $value 属性的值
+	 * @param  string|array $key 属性名称
+	 * @param  mixed        $value 属性的值
 	 * @return $this
 	 */
 	public function addAttr($key, $value = NULL){
@@ -144,8 +179,8 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
-	 * 转化为数组类型
-	 * @param array $keys
+	 * 转化为数组类型（不包含需要隐藏的属性）
+	 * @param  array $keys 转换后需要显示的属性键值数组
 	 * @return array
 	 */
 	public function toArray(array $keys = NULL){
@@ -161,39 +196,6 @@ class MY_Model extends CI_Model{
 			foreach ($this as $key => $value) {
 				if(!in_array($key, $this->_hidden)){
 					$return[$key] = $value;
-				}
-			}
-		}
-		return $return;
-	}
-
-	/**
-	 * 将所有属性转化为数组，数组内的所有值只能是string或者int，用于数据库更新
-	 * @return array 返回转化后的数组
-	 */
-	protected function allArray(array $keys = NULL){
-		$return = array();
-		if(is_null($keys)){
-			foreach ($this as $key => $value) {
-				if(!in_array($key, $this->_hidden_default)){
-					//值为对象时需要转化为字符串
-					if(is_object($value) || is_array($value)){
-						$return[$key] = json_encode($value);
-					}else{
-						$return[$key] = $value;
-					}
-				}
-			}
-		}
-		if(is_array($keys)){
-			foreach ($this as $key => $value) {
-				if(in_array($key, $keys) && !in_array($key, $this->_hidden_default)){
-					//值为对象时需要转化为字符串
-					if(is_object($value) || is_array($value)){
-						$return[$key] = json_encode($value);
-					}else{
-						$return[$key] = $value;
-					}
 				}
 			}
 		}
@@ -319,7 +321,7 @@ class MY_Model extends CI_Model{
 	}
 
 	/**
-	 * 返回数据库表名称
+	 * 返回数据库表名称（当数据库名称和类名不一致时需要重写此方法）
 	 * @return string 表名称默认为类名称
 	 */
 	public static function getSource(){
@@ -443,8 +445,7 @@ class MY_Model extends CI_Model{
 			} else if (is_array($limit) && isset($limit[0])){
 				$db->limit($limit[0] > 0 ? intval($limit[0]) : 0,isset($limit[1]) && $limit[1] > 0 ? intval($limit[1]) : 0);
 			}
-		}
-		if(is_string($array) && !empty($array)){
+		}else if(is_string($array) && !empty($array)){
 			$db->where($array);
 		}
 		//启用假删除
@@ -516,8 +517,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 求和
-	 * @param  [type] $field 求和的字段名
-	 * @param  [type] $where 求和的条件
+	 * @param  string $field 求和的字段名
+	 * @param  array  $array 求和的条件
 	 * @return int           返回结果
 	 */
 	public static function sum($field, $array = NULL){
@@ -535,8 +536,7 @@ class MY_Model extends CI_Model{
 			if(empty($where) && empty($or_where)){
 				$db->where($array);
 			}
-		}
-		if(is_string($array) && !empty($array)){
+		}else if(is_string($array) && !empty($array)){
 			$db->where($array);
 		}
 		//启用假删除
@@ -549,27 +549,28 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 创建一个新对象，并将数据添加到数据库
-	 * @param  [type] $data [description]
-	 * @return [type]       [description]
+	 * @param  array $data 需要添加是数据数组
+	 * @return object 返回一个数据对象
 	 */
 	public static function create($data){
 		$db = static::query();
 		$db->insert(static::getSource(), $data);
-		$insert_id = 0;
+		$insert_id = $db->insert_id();
+		return static::findFirst($insert_id);
+		$insert_id = '';
 		if(isset($data[static::$_primaryKey])){
 			$insert_id = $data[static::$_primaryKey];
 		}else{
 			$insert_id = $db->insert_id();
 		}
-		
 		return static::findFirst(array(static::$_primaryKey=>$insert_id));
 	}
 
 	/**
 	 * 将对象数组转化为JSON字符串
-	 * @param  [type] $array 对象数组
-	 * @param  [type] $keys  对象需要转化的属性名称数组
-	 * @return string        返回JSON序列化的字符串
+	 * @param  array  $array  对象数组
+	 * @param  array  $keys   对象需要转化的属性名称数组
+	 * @return string         返回JSON序列化的字符串
 	 */
 	public static function listToArray($array, $keys = NULL){
 		$datas = array();
@@ -581,8 +582,8 @@ class MY_Model extends CI_Model{
 
 	/**
 	 * 将对象数组转化为JSON字符串
-	 * @param  [type] $array 对象数组
-	 * @param  [type] $keys  对象需要转化的属性名称数组
+	 * @param  array  $array 对象数组
+	 * @param  array  $keys  对象需要转化的属性名称数组
 	 * @return string        返回JSON序列化的字符串
 	 */
 	public static function listToJSON($array, $keys = NULL){
