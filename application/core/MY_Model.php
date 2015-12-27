@@ -27,6 +27,9 @@ class MY_Model extends CI_Model{
 
 	//验证规则
 	public static $_rules = array();
+
+	//是否使用假删除
+	public static $_isdelete = FALSE;
 	
 	/**
 	 * [__construct description]
@@ -306,7 +309,12 @@ class MY_Model extends CI_Model{
 	 */
 	public function destroy(){
 		$db = static::query();
-		$db->delete(static::getSource(), array(static::$_primaryKey=>$this->{static::$_primaryKey}));
+		//启用假删除
+		if(static::$_isdelete){
+			$db->where(array(static::$_primaryKey=>$this->{static::$_primaryKey}))->set('isdelete', 1)->update();
+		}else{
+			$db->delete(static::getSource(), array(static::$_primaryKey=>$this->{static::$_primaryKey}));
+		}
 		return $db->affected_rows();
 	}
 
@@ -392,6 +400,11 @@ class MY_Model extends CI_Model{
 		if(is_int($array)){
 			$db->where(static::$_primaryKey, $array);
 		}
+
+		//启用假删除
+		if(static::$_isdelete){
+			$db->where('isdelete', 0);
+		}
 		$data = $db->limit(1,0)->get()->row_array();
 		return !empty($data) ? static::createObject($data) : NULL;
 	}
@@ -434,6 +447,10 @@ class MY_Model extends CI_Model{
 		if(is_string($array) && !empty($array)){
 			$db->where($array);
 		}
+		//启用假删除
+		if(static::$_isdelete){
+			$db->where('isdelete', 0);
+		}
 		$data = $db->get()->result_array();
 		return static::createObjects($data);
 	}
@@ -445,12 +462,23 @@ class MY_Model extends CI_Model{
 	 */
 	public static function remove($where){
 		$db = static::query();
-		if(is_int($where)){
-			$db->delete(static::getSource(), array($this->_primaryKey=>$id));
-			return $db->affected_rows();
-		} else if(is_string($where) or is_array($where)){
-			$db->delete(static::getSource(), $where);
-			return $db->affected_rows();
+		//启用假删除
+		if(static::$_isdelete){
+			if(is_int($where)){
+				$db->where(array($this->_primaryKey => $where))->set('isdelete', 1)->update();
+				return $db->affected_rows();
+			} else if(is_string($where) or is_array($where)){
+				$db->where($where)->set('isdelete', 1)->update();
+				return $db->affected_rows();
+			}
+		}else{
+			if(is_int($where)){
+				$db->delete(static::getSource(), array($this->_primaryKey=>$where));
+				return $db->affected_rows();
+			} else if(is_string($where) or is_array($where)){
+				$db->delete(static::getSource(), $where);
+				return $db->affected_rows();
+			}
 		}
 		return 0;
 	}
@@ -479,6 +507,10 @@ class MY_Model extends CI_Model{
 		if(is_string($array) && !empty($array)){
 			$db->where($array);
 		}
+		//启用假删除
+		if(static::$_isdelete){
+			$db->where('isdelete', 0);
+		}
 		return $db->count_all_results();
 	}
 
@@ -506,6 +538,10 @@ class MY_Model extends CI_Model{
 		}
 		if(is_string($array) && !empty($array)){
 			$db->where($array);
+		}
+		//启用假删除
+		if(static::$_isdelete){
+			$db->where('isdelete', 0);
 		}
 		$array = $db->select_sum($field)->get()->row_array();
 		return $array[$field];
